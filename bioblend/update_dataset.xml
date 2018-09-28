@@ -1,0 +1,69 @@
+<tool id="history_update_dataset" name="Update Dataset Attributes" version="0.1">
+	<description>in a galaxy history</description>
+	<requirements>
+		<requirement type="package" version="3.6">python</requirement>
+		<requirement type="package" version="0.10.0">bioblend</requirement>
+	</requirements>
+	<version_command>echo $version</version_command>
+	<command detect_errors="aggressive"><![CDATA[
+    python $script
+]]>
+	</command>
+	<configfiles>
+    <configfile name="script"><![CDATA[
+from bioblend import galaxy
+import ast
+
+gi = galaxy.GalaxyInstance(url='$server', key='api_key')
+history = galaxy.histories.HistoryClient(gi)
+hid = '$hid'
+if hid.isdigit():
+		hid = [int(hid)]
+elif hid.startswith('['):
+		hid = ast.literal_eval(hid)
+elif hid.startswith('range('):
+		args = ast.literal_eval(hid[5:])
+		hid = list(range(*args))
+
+new_value = '$new_value'
+if new_value == 'true':
+		new_value = True
+elif new_value == 'false':
+		new_value = False
+
+kwargs = {'$attr': new_value}
+
+for id in hid:
+		history.update_dataset(history_id, id, **kwargs)
+
+with open('$output_file', 'w') as f:
+		f.write("Job is finished!")
+
+]]>
+    </configfile>
+	</configfiles>
+	<inputs>
+		<param name="server" type="text" value="http://127.0.0.1:8080" label="Type in the server address with port:"/>
+		<param name="api_key" type="text" value="" label="Type the API key:"/>
+		<param name="history_id" type="text" value="" lable="the history id number:" help="3f5830403180d620"/>
+		<param name="hid" type="text" value="" label="Type in the dataset hid:" help="eg., 4, [2, 3], range(2, 33, 2)"/>
+		<param name="attr" type="select" label="Choose the attribute want to update:" >
+			<option value="deleted">deleted</option>
+			<option value="visible">visible</option>
+			<option value="visible">name</option>
+		</param>
+		<param name="new_value" type="text" value="false" label="Type the new value for the selected attribute:" 
+				help="For exmaple: true, false, `new_name`" />
+	</inputs>
+	<outputs>
+		<data name="output_file" format="txt"/>
+	</outputs>
+	<help>
+		change dataset attribute by hid.
+		Supports:
+		1) int, eg., 4
+		2) list, eg., [4, 6, 8]
+		3) range(2, 333, 3)
+		https://bioblend.readthedocs.io/en/latest/api_docs/galaxy/all.html
+	</help>
+</tool>
